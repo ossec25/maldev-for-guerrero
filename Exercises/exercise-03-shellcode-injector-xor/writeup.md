@@ -7,6 +7,7 @@ d’évasion simple : l’obfuscation du shellcode via un XOR.
 
 Contrairement à l’exercice 02, le shellcode n’est plus stocké en clair
 dans le binaire, mais décodé dynamiquement en mémoire avant son injection.
+
 À partir de l’exercice 03, les projets sont structurés comme de vrais projets .NET, avec fichiers .csproj, afin de faciliter
 la compilation, le publish et la reproductibilité
 
