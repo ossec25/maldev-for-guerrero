@@ -46,7 +46,17 @@ L’étape suivante, qui consisterait à appliquer ces techniques à du code dyn
 ou à des charges actives, est volontairement exclue afin d’éviter tout risque de
 comportement malveillant.
 
-## 5. Conclusion
+## 5. Test sur machine cible (DV-TARGET)
+
+Le binaire compilé a été transféré sur une machine Windows distincte (DV-TARGET) pour y être exécuté.
+Lors du lancement, l’exécution a échoué avec un message indiquant l’absence du runtime .NET sur cette machine.
+Ce comportement est parfaitement normal et attendu :
+le binaire généré est une application .NET qui dépend du runtime présent sur la machine cible pour fonctionner.
+Cette étape met en lumière l’importance des dépendances logicielles lors du déploiement d’un binaire, qu’il soit légitime ou potentiellement malveillant.
+Aucune modification n’a été apportée pour contourner ce mécanisme, ni pour rendre le binaire autonome, afin de rester dans un cadre strictement académique et sécurisé.
+Enfin, aucune alerte antivirus ni comportement suspect n’a été détecté sur DV-TARGET, ce qui confirme que cet exercice reste purement démonstratif et sans danger.
+
+## 6. Conclusion
 
 Cet exercice permet de comprendre pourquoi les antivirus basés uniquement sur
 des signatures statiques peuvent être contournés par des techniques simples
