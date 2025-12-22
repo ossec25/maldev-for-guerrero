@@ -1,59 +1,132 @@
-# Notes personnelles - MalDev for Guerrero
+# Notes personnelles – MalDev for Guerrero
 
-Ce dépôt contient mes travaux sur le mini-labo de développement malware, inspiré de la formation "maldev-for-dummies".
+Ce dépôt contient mes travaux réalisés dans le cadre du mini-labo de développement malware, inspiré de la formation **“maldev-for-dummies”**.
+L’objectif n’est pas de produire un malware exploitable, mais de **démontrer la compréhension des mécanismes internes**, des techniques courantes et de leurs implications, dans un cadre strictement académique et contrôlé.
+
+---
 
 ## Objectif général
 
-Comprendre et mettre en pratique l’exécution de shellcode en mémoire sous Windows, à travers plusieurs exercices progressifs.
+Comprendre et mettre en pratique, sous Windows :
 
-## Structure
+* l’exécution de shellcode en mémoire,
+* les techniques d’injection de processus,
+* les mécanismes d’évasion simples,
+* les notions de persistance et de communication,
 
-- `Exercises/` : Exercices progressifs de shellcode, injection, évasion, etc.
-- `lab/` : Documentation sur les environnements DEV-VM et TARGET-VM
-- `README.md` : Ce fichier
-
-## Usage
-
-Chaque exercice a son propre dossier avec le code source (`src/`), le binaire compilé (`bin/` si besoin), et un `writeup.md` expliquant le fonctionnement et les observations.
-
-## À venir
-
-- Exercice 01 : Shellcode Runner
-- Exercice 02 : Shellcode Injector
-- Exercice 03 : Techniques d’évasion
-- Exercice 04 : Injection avancée avec Process Hollowing
-- Exercice 05 : Evasion d’Antivirus via Obfuscation
-- Exercice 06 : Persistence et Communication C2 basique
+à travers une **progression d’exercices indépendants**, documentés et testés sur deux environnements distincts.
 
 ---
 
-Pour chaque exercice, consulter le dossier correspondant dans `Exercises/`.
+## Environnements de test
 
-## 
+* **DEV-VM** : machine de développement (compilation, tests initiaux)
+* **TARGET-VM** : machine cible dédiée aux tests d’exécution
 
-- Shellcode exécuté via allocation mémoire et thread Windows.
-- Payload inoffensif : ouverture de calc.exe (calculatrice).
-- Code en C# utilisant `VirtualAlloc`, `CreateThread`, etc.
-- Exécution testée sur DEV-VM et TARGET-VM.
-- Observations sur détection Defender et nécessité de publier avec `dotnet publish`.
-
-
-## Exercice 02 - Shellcode Injector
-
-- Injection de shellcode dans un processus cible déjà existant (ici notepad.exe).
-- Payload utilisé : fermeture du processus Notepad (commande ExitProcess dans le shellcode).
-- Code C# utilisant les API Windows OpenProcess, VirtualAllocEx, WriteProcessMemory, CreateRemoteThread, etc.
-- Testé avec le processus Notepad ouvert au préalable sur la VM.
-- Observations : pas d’effet visuel immédiat (contrairement à l’ouverture de calc.exe dans l’exercice 01), mais le processus ciblé se ferme après injection.
-- Defender était actif lors des tests, sans blocage visible.
-- Remarque : possibilité de varier le payload pour tester d’autres effets, notamment l’exécution de commandes ou affichage (MessageBox, Notepad, etc.).
-- Travail préparatoire pour comprendre les techniques d’injection mémoire ciblée.
-
-## Suite
-
-- Préparation pour exercice 03 : Technique d'évasion
-- Documentation progressive dans ce repo.
+Chaque binaire est testé sur DEV-VM puis transféré et exécuté sur TARGET-VM afin d’observer les différences de comportement, de dépendances et de détection.
 
 ---
 
-Ce fichier est mis à jour à chaque étape.
+## Structure du dépôt
+
+* 'Exercises/'
+  Contient les exercices numérotés (01 à 06), chacun avec :
+
+  * `src/` : code source C#
+  * `publish/` ou `bin/` : binaire compilé
+  * `writeup.md` : description, fonctionnement et observations
+
+* `lab/`
+  Documentation liée aux machines virtuelles et à l’environnement de test.
+
+* `README.md`
+  README d’origine du dépôt forké.
+
+* `README_student.md`
+  Ce document, servant de notes personnelles et de synthèse.
+
+---
+
+## Exercices réalisés
+
+### Exercice 01 – Shellcode Runner
+
+* Exécution de shellcode via allocation mémoire et création de thread Windows.
+* Payload **inoffensif** : ouverture de `calc.exe`.
+* Code C# utilisant `VirtualAlloc`, `CreateThread`, etc.
+* Testé sur DEV-VM et TARGET-VM.
+* Observations sur Windows Defender et sur la nécessité d’utiliser `dotnet publish`.
+
+---
+
+### Exercice 02 – Shellcode Injector
+
+* Injection de shellcode dans un processus existant (`notepad.exe`).
+* Payload utilisé : fermeture du processus ciblé (`ExitProcess`).
+* APIs utilisées : `OpenProcess`, `VirtualAllocEx`, `WriteProcessMemory`, `CreateRemoteThread`.
+* Test effectué avec Notepad lancé au préalable.
+* Observation : effet moins visible que l’exercice 01, mais comportement clairement observable.
+* Defender actif lors des tests, sans blocage apparent.
+* Travail préparatoire essentiel pour comprendre l’injection mémoire ciblée.
+
+---
+
+### Exercice 03 – Techniques d’évasion
+
+* Introduction de mécanismes simples d’obfuscation (ex. XOR).
+* Objectif : masquer le shellcode au repos et le reconstruire à l’exécution.
+* Mise en évidence des limites des signatures statiques.
+
+---
+
+### Exercice 04 – Injection avancée (Process Hollowing)
+
+* Remplacement du code d’un processus légitime par un code contrôlé.
+* Étude des étapes internes du process hollowing.
+* Implémentation volontairement limitée et documentée.
+
+---
+
+### Exercice 05 – Évasion d’Antivirus par obfuscation
+
+* Obfuscation de données stockées dans le binaire.
+* Reconstruction à l’exécution uniquement.
+* Aucun comportement malveillant réel.
+* Mise en évidence des dépendances logicielles (.NET runtime) lors du test sur TARGET-VM.
+
+---
+
+### Exercice 06 – Persistance et communication C2 basique
+
+* Simulation de mécanismes de persistance et de communication.
+* Implémentation **non autonome et non furtive**.
+* Arrêt volontaire avant toute capacité exploitable.
+* Objectif pédagogique : architecture et compréhension, pas diffusion.
+
+---
+
+## Positionnement pédagogique
+
+Les binaires produits démontrent des **comportements potentiellement non désirés**, au sens académique (didactique) du terme, mais restent volontairement **inoffensifs** :
+
+* pas de destruction,
+* pas de propagation,
+* pas de persistance cachée,
+* pas de binaire autonome diffusé.
+
+Chaque exercice s’arrête volontairement à un point défini et documenté dans les writeups.
+
+---
+
+## Suite et conclusion
+
+Ce dépôt est mis à jour progressivement.
+L’objectif final est de fournir :
+
+* une **structure claire**,
+* des **binaires compilés**,
+* une **documentation explicative complète**,
+
+montrant la compréhension des mécanismes internes du développement malware, sans produire un outil dangereux ou exploitable.
+
+---
