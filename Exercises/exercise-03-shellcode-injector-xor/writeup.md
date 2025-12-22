@@ -34,7 +34,9 @@ Le processus cible utilisé pour cet exercice est `notepad.exe`.
 | Détection plus simple | Signature modifiée |
 | Injection directe | Décodage préalable en mémoire |
 
-La technique d’injection reste identique, seule la préparation du payload change.
+Cette simple technique d’obfuscation modifie la signature statique du shellcode, rendant la détection
+un peu plus difficile, mais elle reste insuffisante face aux antivirus modernes basés 
+sur l’analyse comportementale et heuristique.
 
 ---
 
@@ -92,6 +94,8 @@ Cet exercice démontre que :
 - une injection mémoire classique est facilement détectée
 - une simple obfuscation change déjà le comportement de détection
 - la préparation du payload est une étape clé en maldev
+Cette méthode reste pédagogique et loin d’être efficace face à des antivirus modernes, mais elle illustre bien 
+les bases des techniques d’évasion.
 
 ---
 

