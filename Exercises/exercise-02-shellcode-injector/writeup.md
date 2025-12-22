@@ -43,14 +43,18 @@ Le programme effectue les étapes suivantes :
 - Windows Defender détecte ce comportement comme suspect.
 - Le processus cible (notepad) doit être ouvert avant l’injection.
 - L’injection s’est bien déroulée sans erreur, mais l’effet visible dépend du shellcode.
-- Le payload ici lance/ferme Notepad (ou agit dans Notepad), contrairement à l’exercice 01 où la calculatrice était lancée directement.
+- Le payload ici agit dans Notepad, contrairement à l’exercice 01 où la calculatrice était lancée directement.
 
 ---
 
 ## Conclusion
 
-Cet exercice démontre la technique d’injection de code dans un processus existant, une méthode souvent utilisée par certains malwares et outils d’analyse.  
+Cet exercice démontre la technique d’injection de code dans un processus existant, une méthode souvent utilisée par certains malwares et outils d’analyse.
 Il montre comment manipuler la mémoire et les threads d’un autre processus en C#.
+
+Remarque importante :
+Pour que l’injection fonctionne, le processus cible (ici notepad.exe) doit être lancé avant l’exécution du programme d’injection.
+Cette technique est une base fréquente pour les malwares, mais également pour des outils légitimes de diagnostic et d’analyse mémoire.
 
 ---
 
