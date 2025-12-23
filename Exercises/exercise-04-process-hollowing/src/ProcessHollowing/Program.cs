@@ -1,25 +1,27 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace ProcessHollowingDemo
 {
     class Program
     {
-        // Import API Windows nécessaires
+        // =========================
+        // IMPORT DES API WINDOWS
+        // =========================
+
+        // Récupère le contexte d'un thread (registres CPU)
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool GetThreadContext(IntPtr hThread, ref CONTEXT lpContext);
 
+        // Permettrait de modifier le contexte du thread (NON UTILISÉ volontairement)
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool SetThreadContext(IntPtr hThread, ref CONTEXT lpContext);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
-
+        // Création d'un processus (ici Notepad) avec des flags spécifiques
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern bool CreateProcess(
             string lpApplicationName,
-   	    string lpCommandLine,
+            string lpCommandLine,
             IntPtr lpProcessAttributes,
             IntPtr lpThreadAttributes,
             bool bInheritHandles,
@@ -27,21 +29,30 @@ namespace ProcessHollowingDemo
             IntPtr lpEnvironment,
             string lpCurrentDirectory,
             ref STARTUPINFO lpStartupInfo,
-            out PROCESS_INFORMATION lpProcessInformation);
+            out PROCESS_INFORMATION lpProcessInformation
+        );
 
+        // Reprend l'exécution d'un thread suspendu
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern uint ResumeThread(IntPtr hThread);
 
-        // Constantes
-        const uint PROCESS_ALL_ACCESS = 0x001F0FFF;
+        // =========================
+        // CONSTANTES
+        // =========================
+
         const uint CREATE_SUSPENDED = 0x00000004;
 
-        // Flags pour CONTEXT
+        // Flags pour définir quels registres récupérer
+        // CONTEXT_FULL permet d'obtenir :
+        // - les registres de contrôle (RIP, RSP)
+        // - les registres généraux (RAX, RBX, RDX, etc.)
         const uint CONTEXT_CONTROL = 0x00100001;
         const uint CONTEXT_INTEGER = 0x00010002;
         const uint CONTEXT_FULL = CONTEXT_CONTROL | CONTEXT_INTEGER;
 
-        // Structures Windows
+        // =========================
+        // STRUCTURES WINDOWS
+        // =========================
 
         [StructLayout(LayoutKind.Sequential)]
         public struct PROCESS_INFORMATION
@@ -75,7 +86,7 @@ namespace ProcessHollowingDemo
             public IntPtr hStdError;
         }
 
-        // CONTEXT structure pour x64 (simplifiée mais correcte)
+        // Structure CONTEXT x64 (partielle mais suffisante ici)
         [StructLayout(LayoutKind.Sequential)]
         public struct CONTEXT
         {
@@ -106,7 +117,7 @@ namespace ProcessHollowingDemo
 
             public ulong Rax;
             public ulong Rcx;
-            public ulong Rdx;
+            public ulong Rdx; // Contient un pointeur vers le PEB
             public ulong Rbx;
             public ulong Rsp;
             public ulong Rbp;
@@ -121,21 +132,22 @@ namespace ProcessHollowingDemo
             public ulong R14;
             public ulong R15;
 
-            public ulong Rip;
-
-            // There are more fields for floating points etc, but omitted here for brevity
+            public ulong Rip; // Instruction suivante à exécuter
         }
 
         static void Main(string[] args)
         {
-            Console.WriteLine("[+] Début Process Hollowing");
+            Console.WriteLine("[+] Début analyse Process Hollowing");
 
-            // Préparation des structures
             STARTUPINFO si = new STARTUPINFO();
             si.cb = (uint)Marshal.SizeOf(typeof(STARTUPINFO));
+
             PROCESS_INFORMATION pi;
 
-            // Création du processus Notepad en mode suspendu
+            // =========================
+            // 1️⃣ Création du processus suspendu
+            // =========================
+
             bool result = CreateProcess(
                 null,
                 "C:\\Windows\\System32\\notepad.exe",
@@ -146,65 +158,57 @@ namespace ProcessHollowingDemo
                 IntPtr.Zero,
                 null,
                 ref si,
-                out pi);
+                out pi
+            );
 
             if (!result)
             {
-                Console.WriteLine($"Erreur création processus : {Marshal.GetLastWin32Error()}");
+                Console.WriteLine($"Erreur CreateProcess : {Marshal.GetLastWin32Error()}");
                 return;
             }
 
-            Console.WriteLine($"[+] Processus créé en état SUSPENDED");
-            Console.WriteLine($"    PID  : {pi.dwProcessId}");
-            Console.WriteLine($"    TID  : {pi.dwThreadId}");
+            Console.WriteLine("[+] Processus créé en état SUSPENDED");
+            Console.WriteLine($"    PID : {pi.dwProcessId}");
+            Console.WriteLine($"    TID : {pi.dwThreadId}");
 
-            // Préparer la structure CONTEXT pour récupérer le contexte thread
+            // =========================
+            // 2️⃣ Récupération du contexte du thread principal
+            // =========================
+
             CONTEXT context = new CONTEXT();
             context.ContextFlags = CONTEXT_FULL;
 
-            // Récupérer le contexte du thread principal (suspendu)
             bool ctxResult = GetThreadContext(pi.hThread, ref context);
             if (!ctxResult)
             {
-                int error = Marshal.GetLastWin32Error();
-                Console.WriteLine($"Erreur lors de la récupération du contexte du thread. Code erreur : {error}");
+                Console.WriteLine($"Erreur GetThreadContext : {Marshal.GetLastWin32Error()}");
                 return;
             }
 
-            Console.WriteLine("[+] Contexte Thread récupéré");
+            Console.WriteLine("[+] Contexte du thread récupéré");
             Console.WriteLine($"    RIP : 0x{context.Rip:X}");
-            Console.WriteLine($"    RDX (PEB) : 0x{context.Rdx:X}");
+            Console.WriteLine($"    RDX : 0x{context.Rdx:X}");
+            Console.WriteLine("    → RDX pointe vers le PEB (Process Environment Block)");
 
-            // Ici tu pourras modifier context.Rip ou d'autres registres selon besoin
+            // Aucune modification du contexte n'est effectuée volontairement
+            // SetThreadContext n'est PAS utilisé dans ce projet
 
-            // Exemple (inutile ici mais à titre d’illustration) :
-            // context.Rip = nouvelleAdresse;
+            // =========================
+            // 3️⃣ Reprise du thread
+            // =========================
 
-            // Appliquer le contexte modifié (optionnel)
-            // bool setCtxResult = SetThreadContext(pi.hThread, ref context);
-            // if (!setCtxResult)
-            // {
-            //     int errSet = Marshal.GetLastWin32Error();
-            //     Console.WriteLine($"Erreur SetThreadContext : {errSet}");
-            //     return;
-            // }
-
-            // Reprendre le thread principal
             uint resumeResult = ResumeThread(pi.hThread);
             if (resumeResult == unchecked((uint)-1))
             {
-                Console.WriteLine("Erreur lors du ResumeThread");
+                Console.WriteLine("Erreur ResumeThread");
                 return;
             }
 
             Console.WriteLine("[+] Thread repris → Notepad démarre normalement");
 
-// À partir de ce point, les étapes suivantes du process hollowing
-// (lecture mémoire distante, modification de l'image, redirection RIP)
-// ne sont PAS implémentées volontairement.
-// Elles sont décrites uniquement de manière théorique dans le write-up
-// pour des raisons de sécurité et de cadre académique.
-
+            // Les étapes offensives classiques du process hollowing
+            // (lecture mémoire, remplacement d'image, redirection RIP)
+            // sont volontairement NON implémentées dans ce projet.
         }
     }
 }
